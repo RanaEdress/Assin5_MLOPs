@@ -29,7 +29,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: model_info
-          path: model_info.txt
+          path: |
+            model_info.txt
+            mlruns/
 
   deploy:
     needs: validate
