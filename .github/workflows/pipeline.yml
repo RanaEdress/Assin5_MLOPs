@@ -22,7 +22,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Pull Data with DVC
-        run: dvc pull || echo "skip dvc"
+        run: |
+          dvc remote modify localremote url $GITHUB_WORKSPACE/dvc-storage
+          dvc pull
 
       - name: Train Model
         env:
