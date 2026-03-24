@@ -16,9 +16,11 @@ jobs:
         with:
           python-version: 3.10
 
-      - run: pip install mlflow scikit-learn dvc
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - run: echo "Skipping DVC pull"
+      - name: Pull data with DVC
+        run: dvc pull
 
       - run: echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
 
@@ -51,3 +53,4 @@ jobs:
       - run: python check_threshold.py
 
       - run: echo "Building Docker image for Run ID: $(cat model_info.txt)"
+      - run: docker build --build-arg RUN_ID=$(cat model_info.txt) -t my-model:latest .
