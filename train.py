@@ -1,7 +1,7 @@
 import pandas as pd
 import mlflow
 from sklearn.model_selection import train_test_split
-from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 df = pd.read_csv("data/data.csv")
@@ -13,7 +13,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y)
 
 with mlflow.start_run() as run:
 
-    model = DummyClassifier(strategy="most_frequent")
+    model = RandomForestClassifier()
     model.fit(X_train, y_train)
 
     preds = model.predict(X_test)
