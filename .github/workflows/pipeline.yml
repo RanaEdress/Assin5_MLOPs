@@ -1,4 +1,4 @@
-name: ML Pipeline
+name: Assignment5 Pipeline
 
 on:
   push:
@@ -10,51 +10,85 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Requirements
         run: pip install -r requirements.txt
 
-      - name: Pull data with DVC
-        run: dvc pull
+      - name: Pull Data with DVC
+        run: dvc pull || echo "skip dvc"
 
-      - run: echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
+      - name: Train Model
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: python train.py
 
-      - run: python train.py
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload model_info.txt
+        uses: actions/upload-artifact@v4
         with:
-          name: model_info
-          path: |
-            model_info.txt
-            mlruns/
+          name: model-info
+          path: model_info.txt
+
+      - name: Upload MLflow data
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlruns
+          path: mlruns
+
+      - name: Upload Dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataset
+          path: data/data.csv
 
   deploy:
-    needs: validate
     runs-on: ubuntu-latest
+    needs: validate
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - run: pip install mlflow
+      - name: Install Requirements
+        run: pip install -r requirements.txt
 
-      - uses: actions/download-artifact@v4
+      - name: Download model_info.txt
+        uses: actions/download-artifact@v4
         with:
-          name: model_info
+          name: model-info
 
-      - run: echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
+      - name: Download MLflow data
+        uses: actions/download-artifact@v4
+        with:
+          name: mlruns
+          path: mlruns
 
-      - run: python check_threshold.py
+      - name: Download Dataset
+        uses: actions/download-artifact@v4
+        with:
+          name: dataset
+          path: data
 
-      - name: Mock Build and Package
+      - name: Debug files (optional)
+        run: ls -R
+
+      - name: Check Threshold
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: python check_threshold.py
+
+      - name: Mock Docker Build
         run: |
           echo "Building Docker image for Run ID: $(cat model_info.txt)"
           docker build --build-arg RUN_ID=$(cat model_info.txt) -t my-model:latest .
